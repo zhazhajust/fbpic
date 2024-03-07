@@ -19,7 +19,8 @@ class ParticleDiagnostic(OpenPMDDiagnostic) :
     def __init__(self, period=None, species={}, comm=None,
         particle_data=["position", "momentum", "weighting"],
         select=None, write_dir=None, iteration_min=0, iteration_max=np.inf,
-        subsampling_fraction=None, dt_period=None ) :
+        subsampling_fraction=None, subsampling_uniform_stride=None, 
+        dt_period=None ) :
         """
         Initialize the particle diagnostics.
 
@@ -73,6 +74,10 @@ class ParticleDiagnostic(OpenPMDDiagnostic) :
         subsampling_fraction : float, optional
             If this is not None, the particle data is subsampled with
             subsampling_fraction probability
+
+        subsampling_uniform_stride : float, optional
+            If this is not None, the particle data is subsampled with
+            uniform_stride probability
         """
         # Check input
         if len(species) == 0:
@@ -94,6 +99,7 @@ class ParticleDiagnostic(OpenPMDDiagnostic) :
         self.species_dict = species
         self.select = select
         self.subsampling_fraction = subsampling_fraction
+        self.subsampling_uniform_stride = subsampling_uniform_stride
 
         # For each species, get the particle arrays to be written
         self.array_quantities_dict = {}
@@ -386,6 +392,10 @@ class ParticleDiagnostic(OpenPMDDiagnostic) :
             subsampling_array = np.random.rand(species.Ntot) < \
                 self.subsampling_fraction
             select_array = np.logical_and(subsampling_array,select_array)
+
+        # subsampling selector
+        if self.subsampling_uniform_stride is not None :
+            select_array[::self.subsampling_uniform_stride] = True
 
         # Apply the rules successively
         if self.select is not None :
