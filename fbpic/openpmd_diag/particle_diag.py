@@ -395,7 +395,9 @@ class ParticleDiagnostic(OpenPMDDiagnostic) :
 
         # subsampling selector
         if self.subsampling_uniform_stride is not None :
-            select_array[::self.subsampling_uniform_stride] = True
+            subsampling_array = np.zeros_like(select_array, dtype='bool')
+            subsampling_array[::self.subsampling_uniform_stride] = True
+            select_array = np.logical_and(subsampling_array,select_array)
 
         # Apply the rules successively
         if self.select is not None :
