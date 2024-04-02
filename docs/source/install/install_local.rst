@@ -39,12 +39,12 @@ Python. If Anaconda is not your default Python distribution, download and instal
        A shortcut for this is: ``python3 -m pip install git+https://github.com/fbpic/fbpic.git``.
 
 -  **Optional:** In order to be able to run the code on a GPU,
-   install the additional package ``cudatoolkit`` and ``cupy``.
+   install the additional package ``cupy``.
 
    ::
 
 
-       conda install -c conda-forge cudatoolkit cupy
+       conda install -c conda-forge cupy
 
    .. warning::
 
