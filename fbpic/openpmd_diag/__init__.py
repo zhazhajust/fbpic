@@ -4,6 +4,8 @@ It imports the objects that allow to produce output in openPMD format.
 """
 
 from .field_diag import FieldDiagnostic
+from .slice_diag import SliceDiagnostic
+from .dump_slice import DumpSlice
 from .particle_diag import ParticleDiagnostic
 from .particle_density_diag import ParticleChargeDensityDiagnostic
 from .boosted_field_diag import BoostedFieldDiagnostic, \
@@ -14,7 +16,7 @@ from .inputscript_diag import InputScriptDiagnostic
 from .checkpoint_restart import set_periodic_checkpoint, \
      restart_from_checkpoint
 
-__all__ = ['FieldDiagnostic', 'ParticleDiagnostic',
+__all__ = ['FieldDiagnostic', 'SliceDiagnostic', 'ParticleDiagnostic', 'DumpSlice',
 	'BoostedFieldDiagnostic', 'BoostedParticleDiagnostic',
     'BackTransformedFieldDiagnostic', 'BackTransformedParticleDiagnostic',
     'ParticleChargeDensityDiagnostic', 'InputScriptDiagnostic',
