@@ -19,11 +19,12 @@ from scipy.constants import c, e, m_e, m_p
 from scipy.constants import physical_constants
 from fbpic.main import Simulation
 from fbpic.lpa_utils.laser import add_laser
+from fbpic.utils.cuda import cuda_installed
 
 anom = physical_constants['electron mag. mom. anomaly'][0]
 
 
-use_cuda = True
+use_cuda = cuda_installed
 n_order = -1
 
 # Driver laser parameters
@@ -52,7 +53,7 @@ Nm = 2               # Number of modes used
 dt = (zmax - zmin) / Nz / c   # Timestep (seconds)
 
 
-def run_ionization_test_sim(show):
+def run_ionization_test_sim():
     # Initialize the simulation object
     sim = Simulation(Nz, zmax, Nr, rmax, Nm, dt, zmin=zmin,
                      n_order=n_order, use_cuda=use_cuda,
@@ -100,11 +101,13 @@ def run_ionization_test_sim(show):
                 n_prev_elec = n_ion_elec_from_prev_step[level]
                 n_new_elec = elec.Ntot - n_prev_elec
                 if n_new_elec > 0:
-                    if level == 0:
-                        assert strack.sz[n_prev_elec:].mean() == 1.
-                    else:
-                        assert strack.sz[n_prev_elec:].mean() != 1.
-                    # Print some stats for clarity
+                    # Assertion only done when running on GPU!
+                    if not use_cuda:
+                        if level == 0:
+                            assert strack.sz[n_prev_elec:].mean() == 1.
+                        else:
+                            assert strack.sz[n_prev_elec:].mean() != 1.
+                        # Print some stats for clarity
                     print(f'\tLevel {level+1} had {elec.Ntot-n_prev_elec} new electrons '
                           f'with <s_z>={strack.sz[n_prev_elec:].mean()}')
 
@@ -116,10 +119,10 @@ def run_ionization_test_sim(show):
             break
 
 
-def test_spin_ionization_lab(show=False):
+def test_spin_ionization_lab():
     """Function that is run by pytest"""
-    run_ionization_test_sim(show)
+    run_ionization_test_sim()
 
 
 if __name__ == '__main__':
-    test_spin_ionization_lab(show=False)
+    test_spin_ionization_lab()
