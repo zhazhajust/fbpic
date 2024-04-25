@@ -219,11 +219,11 @@ def run_external_laser_field_simulation(show):
         ux_anal_shifted = np.interp(t[1:]-dt*0.5, t, ux_analytic)
         assert np.allclose( ux_anal_shifted, ux[1:], atol=atol, rtol=rtol )
         print(f'The momentum ux agrees with the theory to atol={atol},\n' +
-              'over the whole simulation box.')
+              'over the whole duration of the simulation.')
         sx_anal_shifted = np.interp(t[1:] - dt * 0.5, t, sx_analytic)
         assert np.allclose(sx_anal_shifted, sx[1:], atol=atol, rtol=rtol)
         print(f'The spin sx agrees with the theory to atol={atol},\n' +
-              'over the whole simulation box.')
+              'over the whole duration of the simulation.')
     else:
         # Show the images to the user
         import matplotlib.pyplot as plt
@@ -269,13 +269,6 @@ def run_external_laser_field_simulation(show):
         add_gridlines()
         plt.legend(['Analytic', 'FB-PIC'])
         plt.show()
-
-        # save data as uncompressed .npz file
-        #np.savez(dir+'data.npz', t=t/T, t_mhalf=(t-dt/2)/T, ux=ux,
-        #         ux_analytic=ux_analytic, uz=uz, uz_analytic=uz_analytic, sx=sx,
-        #         sx_analytic=sx_analytic, sz=sz, sz_analytic=sz_analytic,
-        #         x=k0*(x+lambda0), z=k0*(z+lambda0))
-
 
 def laser_func(F, x, y, z, t, amplitude, length_scale ):
     """

@@ -1,7 +1,7 @@
 """
 Usage :
 from the top-level directory of FBPIC run
-$ python spin_planewave_test.py
+$ python spin_ionization.py
 
 -------------------------------------------------------------------------------
 
@@ -56,9 +56,6 @@ def dens_func( z, r ) :
     """Returns relative density at position z and r"""
     # Allocate relative density
     n = np.ones_like(z)
-    #n = np.where(r < rmax/Nr, n, 0.)
-    #n = np.where(np.abs(z) < zmax/Nz, n, 0.)
-    # n = np.where( z<ramp_start+ramp_length, (z-ramp_start)/ramp_length, n )
     return n
 
 
@@ -93,22 +90,10 @@ def run_ionization_test_sim(show):
 
     # Run the simulation
 
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-    fig = plt.figure()
-
-    # ax = fig.add_subplot(projection='3d')
-    ax = fig.add_subplot(111, projection='3d')
-    ax.set_xlabel('sx')
-    ax.set_ylabel('sy')
-    ax.set_zlabel('sz')
-
     elec_total = 5 * atoms_Cl.Ntot
 
     # run until we have enough ionized electrons...
     elec_sum = 0
-    step = 0
     while elec_sum < elec_total:
         elec_sum = 0
         step += 1

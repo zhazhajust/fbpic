@@ -28,10 +28,6 @@ def push_s_BMT(sx_i, sy_i, sz_i, ux_i, uy_i, uz_i, ux_f, uy_f, uz_f,
     inv_gamma = 1./math.sqrt( 1. + ux**2 + uy**2 + uz**2 )
     # Define parameter: 1./(1+gamma)
     inv_1pgamma = inv_gamma/(1. + inv_gamma)
-    """
-    NOTE! ALGORITHM WRITTEN IN TERMS OF REST FRAME FIELDS.
-    CHECK HOW THE FORM OF BMT EQUATION CHANGES FOR LORENTZ-BOOST.
-    """
     # Scalar product of momentum and B field
     uB = (ux*Bx + uy*By + uz*Bz)
 
@@ -49,20 +45,6 @@ def push_s_BMT(sx_i, sy_i, sz_i, ux_i, uy_i, uz_i, ux_f, uy_f, uz_f,
                      - anom*inv_gamma*inv_1pgamma*uB*uz )
 
     tau2 = taux**2 + tauy**2 + tauz**2
-
-    # # ---------- Boris Method------------------------------------------------
-    # upsx = 2*taux/(1. + tau2)
-    # upsy = 2*tauy/(1. + tau2)
-    # upsz = 2*tauz/(1. + tau2)
-    #
-    # New spin components
-    # sx_f = ( sx_i + sy_i*upsz - sz_i*upsy + (sz_i*taux - sx_i*tauz)*upsz
-    #          - (sx_i*tauy - sy_i*taux)*upsy )
-    # sy_f = ( sy_i + sz_i*upsx - sx_i*upsz + (sx_i*tauy - sy_i*taux)*upsx
-    #          - (sy_i*tauz - sz_i*tauy)*upsz )
-    # sz_f = ( sz_i + sx_i*upsy - sy_i*upsx + (sy_i*tauz - sz_i*tauy)*upsy
-    #          - (sz_i*taux - sx_i*tauz)*upsx )
-    # # -----------------------------------------------------------------------
 
     # ---------- Tamburini Method ---------------------------------------------
     ups = 1/(1. + tau2)

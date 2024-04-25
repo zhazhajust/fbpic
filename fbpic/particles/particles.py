@@ -549,8 +549,8 @@ class Particles(object) :
             s{x,y,z}_m. The first non-zero mean component will be
             used, with order of preference being x,y,z, ie if sx_m!=0,
             the generated spins will have an ensemble averages of
-            |sx|=sx_m, |sy|=0, |sz|=0, or if sz_m!=0, |sx|=0, |sy|=0
-            and |sz|=sz_m.
+            <sx>=sx_m, <sy>=0, <sz>=0, or if sz_m!=0, <sx>=0, <sy>=0
+            and <sz>=sz_m.
         """
         # Warn about ionizer!
         if self.ionizer is not None:

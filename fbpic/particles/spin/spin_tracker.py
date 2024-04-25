@@ -37,7 +37,7 @@ class SpinTracker(object):
 
         .. math::
             \\frac{d\\boldsymbol{s}}{dt} = (\\boldsymbol{\\Omega}_T +
-             \\boldsymbol{\\Omega}_a) \\boldsymbol{s}
+             \\boldsymbol{\\Omega}_a) \\times \\boldsymbol{s}
 
         where
 
@@ -97,8 +97,8 @@ class SpinTracker(object):
             s{x,y,z}_m. The first non-zero mean component will be
             used, with order of preference being x,y,z, ie if sx_m!=0,
             the generated spins will have an ensemble averages of
-            |sx|=sx_m, |sy|=0, |sz|=0, or if sz_m!=0, |sx|=0, |sy|=0
-            and |sz|=sz_m.
+            <sx>=sx_m, <sy>=0, <sz>=0, or if sz_m!=0, <sx>=0, <sy>=0
+            and <sz>=sz_m.
 
         """
         self.sx_m = sx_m
@@ -174,8 +174,6 @@ class SpinTracker(object):
                     self.ptcl.Bx, self.ptcl.By, self.ptcl.Bz,
                     self.ptcl.m, self.ptcl.Ntot, self.dt, self.anom,
                     self.ptcl.ionizer.ionization_level)
-                # elif z_plane is not None:
-                # ... no implemented effect on spin precession for x_plane...
             else:
                 # Standard pusher
                 push_s_gpu[dim_grid_1d, dim_block_1d](
@@ -199,8 +197,6 @@ class SpinTracker(object):
                                    self.ptcl.m, self.ptcl.Ntot,
                                    self.dt, self.anom,
                                    self.ptcl.ionizer.ionization_level)
-                # elif z_plane is not None:
-                # ... no implemented effect on spin precession for z_plane...
             else:
                 # Standard spin pusher
                 push_s_numba(self.sx, self.sy, self.sz,

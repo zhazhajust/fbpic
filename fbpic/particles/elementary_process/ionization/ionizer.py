@@ -28,7 +28,6 @@ the GPU. In order, to limit the amount of data to be transfered, particles are
 handled in batches of 10 particles, so that only the cumulative sum of the
 number of particles in each batch need to be performed.
 """
-import warnings
 import numpy as np
 from scipy.constants import c, e, m_e, physical_constants
 from scipy.special import gamma
@@ -58,7 +57,7 @@ class Ionizer(object):
 
     This class also handles spin tracking. In case of an ion getting
     ionized, the first electron will have the same spin as the ion, whereas
-    all subseqeuntly ionized electrons will have a random spin direction
+    all subsequently ionized electrons will have a random spin direction
     (generated via sphere point picking).
 
     Main attributes
@@ -332,16 +331,9 @@ class Ionizer(object):
             # If spin tracking is enabled, generate also new spins
             # (on GPU or GPU depending on `use_cuda`)
             if ion.spin_tracker is not None:
-                if elec.spin_tracker is None:
-                    warnings.warn('\nSpin tracking is enabled for ion, '
-                                  'but not for target species!\n')
-                    continue
 
                 if use_cuda:
                     # Generate a set of random spins here
-                    #rand_sx = allocate_empty(new_Ntot-old_Ntot, True, np.float64)
-                    #rand_sy = allocate_empty(new_Ntot - old_Ntot, True, np.float64)
-                    #rand_sz = allocate_empty(new_Ntot - old_Ntot, True, np.float64)
                     rand_sx, rand_sy, rand_sz = ion.spin_tracker.generate_ionized_spins_gpu(new_Ntot-old_Ntot)
                     copy_ionized_electron_spin_cuda[ batch_grid_1d,
                                                      batch_block_1d ](

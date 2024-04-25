@@ -6,7 +6,7 @@ This test file is part of FB-PIC (Fourier-Bessel Particle-In-Cell).
 
 It tests the restart of the spin-tracker, with and without
 ionizer. Without ionization, the spin vectors are checked to be the
-same within some precision. For ionization, we check the simulations run.
+same within some precision. For ionization, we check that the simulations run.
 """
 import numpy as np
 import shutil
