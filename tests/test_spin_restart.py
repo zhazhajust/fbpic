@@ -73,11 +73,9 @@ def run_sim(script_name, n_MPI=1):
         script = replace_string(script, '# Load initial fields',
                       'elec.activate_spin_tracking(sz_m=1., anom=0.)')
     elif script_name == 'ionization_script.py':
-        script = replace_string(script, '# Create a Gaussian laser profile',
-                        'atoms_He.activate_spin_tracking(sz_m=1., anom=0.);'
-                        'atoms_N.activate_spin_tracking(sz_m=1., anom=0.);'
-                        'elec.activate_spin_tracking(sz_m=1., anom=0.);'
-                        'elec_from_N.activate_spin_tracking(sz_m=1., anom=0.)')
+        script = re.sub('(\s*)(\S*) = sim.add_new_species\(([\s\S\n]*?)\)',
+               '\g<1>\g<2> = sim.add_new_species(\g<3>)\g<1>\g<2>.activate_spin_tracking(sz_m=1., anom=0.)',
+               script)
     else:
         raise ValueError('File %s unknown!' % script_name)
 
