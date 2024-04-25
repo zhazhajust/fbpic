@@ -160,11 +160,12 @@ class Ionizer(object):
         for species in self.target_species:
             assert species.q == -e
             assert species.m == m_e
-            # Another sanity check: if spin tracking is enabled for
-            # the parent ion, make sure it is activated for electrons, too
-            if ionizable_species.spin_tracker is not None:
-                species.activate_spin_tracking(
-                    anom=physical_constants['electron mag. mom. anomaly'][0])
+            # If spin tracking is enabled for the parent ion, it must be
+            # activated for electrons, too!
+            if (ionizable_species.spin_tracker is not None
+                    and species.spin_tracker is None):
+                raise ValueError("Spin tracking is enabled for parent ion,"
+                                 "but not for target species!")
 
     def initialize_ADK_parameters( self, element, dt ):
         """

@@ -78,6 +78,8 @@ def run_sim(script_name, n_MPI=1):
                         'atoms_N.activate_spin_tracking(sz_m=1., anom=0.);'
                         'elec.activate_spin_tracking(sz_m=1., anom=0.);'
                         'elec_from_N.activate_spin_tracking(sz_m=1., anom=0.)')
+    else:
+        raise ValueError('File %s unknown!' % script_name)
 
     with open(script_filename, 'w') as f:
         f.write(script)

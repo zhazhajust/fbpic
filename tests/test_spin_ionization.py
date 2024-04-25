@@ -1,7 +1,7 @@
 """
 Usage :
 from the top-level directory of FBPIC run
-$ python spin_ionization.py
+$ python test_spin_ionization.py
 
 -------------------------------------------------------------------------------
 
@@ -52,13 +52,6 @@ Nm = 2               # Number of modes used
 dt = (zmax - zmin) / Nz / c   # Timestep (seconds)
 
 
-def dens_func( z, r ) :
-    """Returns relative density at position z and r"""
-    # Allocate relative density
-    n = np.ones_like(z)
-    return n
-
-
 def run_ionization_test_sim(show):
     # Initialize the simulation object
     sim = Simulation(Nz, zmax, Nr, rmax, Nm, dt, zmin=zmin,
@@ -66,11 +59,9 @@ def run_ionization_test_sim(show):
                      boundaries={'z': 'open', 'r': 'reflective'})
 
     # Add hydrogen and make ionisable
-    atoms_Cl = sim.add_new_species(q=0., m=34*m_p, n=1e24,
-                                   dens_func=dens_func, p_nz=p_nz,
+    atoms_Cl = sim.add_new_species(q=0., m=34*m_p, n=1e24, p_nz=p_nz,
                                    p_nr=p_nr, p_nt=p_nt,
                                    continuous_injection=False)
-    atoms_Cl.activate_spin_tracking(sz_m=1., anom=0.)
 
     elec_dict = {}
     for i in range(17):
@@ -79,33 +70,50 @@ def run_ionization_test_sim(show):
         elec.activate_spin_tracking(anom=anom)
         elec_dict[i] = elec
 
+    atoms_Cl.activate_spin_tracking(sz_m=1., anom=0.)
     atoms_Cl.make_ionizable( 'Cl', target_species=elec_dict, level_start=0)
 
-    print(('ion', atoms_Cl.Ntot, atoms_Cl.spin_tracker.sx.mean(),
-           atoms_Cl.spin_tracker.sy.mean(), atoms_Cl.spin_tracker.sz.mean()))
+    # Check that the spin vectors are set up properly for the parent ion
+    assert atoms_Cl.spin_tracker.sx.mean() < 0.01
+    assert atoms_Cl.spin_tracker.sy.mean() < 0.01
+    assert atoms_Cl.spin_tracker.sz.mean() > 0.99
 
-    # Load initial fields
     # Add a laser to the fields of the simulation
     add_laser( sim, a0, w0, ctau, z0=z0, zf=zf, lambda0=lam)
 
     # Run the simulation
+    n_elec_to_ionize = 5 * atoms_Cl.Ntot
+    n_ion_elec_from_prev_step = dict(list(enumerate([0]*17)))
+    for step in range(50):
+        n_elec_ionized = 0
 
-    elec_total = 5 * atoms_Cl.Ntot
-
-    # run until we have enough ionized electrons...
-    elec_sum = 0
-    while elec_sum < elec_total:
-        elec_sum = 0
-        step += 1
         # step and collect the data
         sim.step(1, show_progress=False)
-        print('Step  Level  Ntot  N(sz==1)')
+        print(f'Step {step+1} ')
         for level, elec in elec_dict.items():
-            elec_sum += elec.Ntot
+            n_elec_ionized += elec.Ntot
+            strack = elec.spin_tracker
+
             if level < 6:
-                print(f'{step:4d}  {level+1:5d}  {elec.Ntot:4d} ' +
-                      f'{np.sum(elec.spin_tracker.sz==1.):8d}')
-        print('*'*40)
+                # Check that the newly ionized electrons have expected spin:
+                # <s_z> = 1 for first level and less for others
+                n_prev_elec = n_ion_elec_from_prev_step[level]
+                n_new_elec = elec.Ntot - n_prev_elec
+                if n_new_elec > 0:
+                    if level == 0:
+                        assert strack.sz[n_prev_elec:].mean() == 1.
+                    else:
+                        assert strack.sz[n_prev_elec:].mean() != 1.
+                    # Print some stats for clarity
+                    print(f'\tLevel {level+1} had {elec.Ntot-n_prev_elec} new electrons '
+                          f'with <s_z>={strack.sz[n_prev_elec:].mean()}')
+
+            # Store the amount of new electrons this step
+            n_ion_elec_from_prev_step[level] = elec.Ntot
+
+        # Run until we have ionized an electrons from all outer shell
+        if n_elec_ionized > n_elec_to_ionize:
+            break
 
 
 def test_spin_ionization_lab(show=False):

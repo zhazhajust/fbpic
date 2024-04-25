@@ -31,8 +31,10 @@ uz(phi) = u0z + 0.5*(a0*sin(phi))**2/(gamma_i - uz_i)
 (see e.g. Salamin & Faisal. Phys. Rev. A 54 (5 Nov. 1996), pp. 4383–4395.
 DOI : 10.1103/PhysRevA.54.4383)
 
-For these equations of motion, one can solve the Bargmann-Michel-Telegdi
-equation to obtain the following solutions:
+For these equations of motion, one can solve the
+Bargmann-Michel-Telegdi equation to obtain the following
+solutions (see  M. J. Quin MSc thesis, DOI: 10.11588/heidok.00033704):
+
 sx(phi) = sx_i*cos(I[phi]) - sz_i*sin(I[phi])
 sy(phi) = sy_i
 sz(phi) = sz_i*cos(I[phi]) + sx_i*sin(I[phi])

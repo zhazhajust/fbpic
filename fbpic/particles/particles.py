@@ -518,24 +518,47 @@ class Particles(object) :
         enable calculating the evolution of particle spin
         vector throughout the simulation.
 
-        Note: spin tracking should be activated _before_ making
-        a species ionizable. Otherwise, spin tracking must be
-        manually activated for the target species of the
-        ionized electrons.
+        .. math::
+            \\frac{d\\boldsymbol{s}}{dt} = (\\boldsymbol{\\Omega}_T +
+             \\boldsymbol{\\Omega}_a) \\times \\boldsymbol{s}
+
+        where
+
+        .. math::
+            \\boldsymbol{\\Omega}_T = \\frac{q}{m}\\left(
+                 \\frac{\\boldsymbol{B}}{\\gamma} -
+                 \\frac{\\boldsymbol{B}}{1+\\gamma}
+                 \\times \\frac{\\boldsymbol{E}}{c} \\right)
+
+        and
+
+        .. math::
+            \\boldsymbol{\\Omega}_a = a_e \\frac{q}{m}\\left(
+                 \\boldsymbol{B} -
+                 \\frac{\\gamma}{1+\\gamma}\\boldsymbol{\\beta}
+                 (\\boldsymbol{\\beta}\\cdot\\boldsymbol{B}) -
+                 \\boldsymbol{\\beta} \\times \\frac{\\boldsymbol{E}}{c} \\right)
+
+        Here, :math:`a_e` is the anomalous magnetic moment of the particle,
+        :math:`\\gamma` is the Lorentz factor of the particle,
+        :math:`\\boldsymbol{\\beta}=\\boldsymbol{v}/c` is the normalised velocity
+
+        The implementation of the push algorithm is detailed in
+        https://arxiv.org/abs/2303.16966.
+
+        Note: spin tracking must be activated _before_ making
+        a species ionizable, otherwise an error will be raised.
 
         Parameters
         ----------
         sx_m: float
-            The species-averaged average projection onto
-            the x axis
+            The species-averaged average projection onto the x-axis
 
         sy_m: float
-            The species-averaged average projection onto
-            the y axis
+            The species-averaged average projection onto the y-axis
 
         sz_m: float
-            The species-averaged average projection onto
-            the z axis
+            The species-averaged average projection onto the z-axis
 
         anom: float
             The anomalous magnetic moment of the particle.
@@ -554,9 +577,8 @@ class Particles(object) :
         """
         # Warn about ionizer!
         if self.ionizer is not None:
-            warnings.warn('\nIonizer already activated! Please make sure '
-                          'spin tracking is manually activated for all '
-                          'target species\n')
+            raise RuntimeError('\nIonizer already activated! Spin tracking '
+                               'must be activated __before__ the ionizer!\n')
 
         self.spin_tracker = SpinTracker(species=self, dt=self.dt,
                                         sx_m=sx_m, sy_m=sy_m,

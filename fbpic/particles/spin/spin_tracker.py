@@ -73,16 +73,13 @@ class SpinTracker(object):
             Simulation timestep
 
         sx_m: float (dimensionless), optional
-            The species-averaged average projection onto
-            the x-axis
+            The species-averaged average projection onto the x-axis
 
         sy_m: float (dimensionless), optional
-            The species-averaged average projection onto
-            the y-axis
+            The species-averaged average projection onto the y-axis
 
         sz_m: float (dimensionless), optional
-            The species-averaged average projection onto
-            the z-axis
+            The species-averaged average projection onto the z-axis
 
         anom: float, (dimensionless), optional
             The anomalous magnetic moment of the particle,
@@ -91,7 +88,9 @@ class SpinTracker(object):
 
         spin_distr: str, optional
             If 'fixed', all particles will have a fixed spin value
-            equal to s{x,y,z}_m.
+            equal to s{x,y,z}_m. Note the sum of squares of the components
+            must add up to 1, otherwise an error will be raised.
+
             If 'rand', the spin vectors will be random, but with an
             ensemble average defined by one of the values of
             s{x,y,z}_m. The first non-zero mean component will be
@@ -108,6 +107,11 @@ class SpinTracker(object):
         self.anom = anom
         self.dt = dt
         self.spin_distr = spin_distr
+
+        # Check the spin vector length is correct for the 'fixed' distribution
+        if spin_distr == 'fixed' and self.sm != 1.:
+            raise ValueError("When using 'fixed' spin distribution, "
+                             "the squared sum must be equal to 1!")
 
         # Store the species we perform spin tracking for
         self.ptcl = species
@@ -149,10 +153,6 @@ class SpinTracker(object):
         self.Bx, self.By, self.Bz,                          n
         self.x, self.y, self.z                              n
         self.ux, self.uy, self.uz                           n+1/2
-
-        NOTE!
-        Functions have not been modified to work with differing charge in
-        'ionizable' or 'plane' methods.
         """
         # No precession for neutral particle
         if self.ptcl.q == 0:

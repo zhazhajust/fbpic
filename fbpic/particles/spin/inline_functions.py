@@ -16,7 +16,8 @@ from scipy.constants import c
 def push_s_BMT(sx_i, sy_i, sz_i, ux_i, uy_i, uz_i, ux_f, uy_f, uz_f,
                Ex, Ey, Ez, Bx, By, Bz, tauconst, anom):
     """
-    Push spin of a single particle
+    Push spin of a single particle using the 'Tamburini' pusher, as
+    detailed in https://arxiv.org/abs/2303.16966
     """
     # Momentum at a half-timestep forward using Boris assumption
     ux = (ux_i + ux_f)/2
