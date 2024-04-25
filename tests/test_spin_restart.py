@@ -73,10 +73,14 @@ def run_sim(script_name, n_MPI=1):
         script = replace_string(script, '# Load initial fields',
                       'elec.activate_spin_tracking(sz_m=1., anom=0.)')
     elif script_name == 'ionization_script.py':
-        script = replace_string(script, '# Create a Gaussian laser profile',
-                        'atoms_He.activate_spin_tracking(sz_m=1., anom=0.);'
+        # Make sure the spin tracking is turned on before making ionizable
+        script = replace_string(script, "atoms_He.make_ionizable\( 'He', target_species=elec, level_start=1 \)",
+                                'atoms_He.activate_spin_tracking(sz_m=1., anom=0.);'
+                                'elec.activate_spin_tracking(sz_m=1., anom=0.);'
+                                "atoms_He.make_ionizable( 'He', target_species=elec, level_start=1 )")
+        script = replace_string(script, 'elec_from_N = sim.add_new_species\( q=-e, m=m_e \)',
+                        'elec_from_N = sim.add_new_species( q=-e, m=m_e );'
                         'atoms_N.activate_spin_tracking(sz_m=1., anom=0.);'
-                        'elec.activate_spin_tracking(sz_m=1., anom=0.);'
                         'elec_from_N.activate_spin_tracking(sz_m=1., anom=0.)')
     else:
         raise ValueError('File %s unknown!' % script_name)
@@ -229,7 +233,7 @@ def compare_polarisations(ts1, ts2, checked_species, pol_component):
 
 
 if __name__ == '__main__':
-    test_spin_restart()
-    test_spin_restart_twoproc()
+    #test_spin_restart()
+    #test_spin_restart_twoproc()
     test_spin_ionization_restart()
-    test_spin_ionization_restart_twoproc()
+    #test_spin_ionization_restart_twoproc()
