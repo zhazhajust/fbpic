@@ -551,13 +551,13 @@ class Particles(object) :
 
         Parameters
         ----------
-        sx_m: float
+        sx_m: float (dimensionless), optional
             The species-averaged average projection onto the x-axis
 
-        sy_m: float
+        sy_m: float (dimensionless), optional
             The species-averaged average projection onto the y-axis
 
-        sz_m: float
+        sz_m: float (dimensionless), optional
             The species-averaged average projection onto the z-axis
 
         anom: float

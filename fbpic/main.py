@@ -485,7 +485,7 @@ class Simulation(object):
             # If spin tracking is enabled, store the previous momenta
             for species in ptcl:
                 if species.spin_tracker is not None:
-                    species.spin_tracker.store_previous_momenta()
+                    species.spin_tracker.store_previous_momenta(species)
 
             # Push the particles' positions and velocities to t = (n+1/2) dt
             if move_momenta:
@@ -499,7 +499,7 @@ class Simulation(object):
             # averaging over velocities at t = (n-1/2) dt and t = (n+1/2) dt
             for species in ptcl:
                 if species.spin_tracker is not None:
-                    species.spin_tracker.push_s()
+                    species.spin_tracker.push_s(species)
 
             # Get positions/velocities for antenna particles at t = (n+1/2) dt
             for antenna in self.laser_antennas:

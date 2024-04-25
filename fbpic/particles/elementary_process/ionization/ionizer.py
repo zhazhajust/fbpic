@@ -45,6 +45,7 @@ if cuda_installed:
     from fbpic.utils.cuda import cuda_tpb_bpg_1d
     from .cuda_methods import ionize_ions_cuda, copy_ionized_electrons_cuda
     from ...spin.cuda_methods import copy_ionized_electron_spin_cuda
+    from ...spin.cuda_numba_utils import random_point_sphere_gpu
 
 
 class Ionizer(object):
@@ -335,7 +336,7 @@ class Ionizer(object):
 
                 if use_cuda:
                     # Generate a set of random spins here
-                    rand_sx, rand_sy, rand_sz = ion.spin_tracker.generate_ionized_spins_gpu(new_Ntot-old_Ntot)
+                    rand_sx, rand_sy, rand_sz = random_point_sphere_gpu(new_Ntot-old_Ntot)
                     copy_ionized_electron_spin_cuda[ batch_grid_1d,
                                                      batch_block_1d ](
                         N_batch, self.batch_size, old_Ntot,

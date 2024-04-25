@@ -8,11 +8,10 @@ It defines the structure and methods associated with particle spin
 tracking.
 """
 import numpy as np
+from scipy.optimize import fsolve
 # Check if CUDA is available, then import CUDA functions
 from fbpic.utils.cuda import cuda_installed
 from .numba_methods import push_s_numba, push_s_ioniz_numba
-from .cuda_numba_utils import random_point_sphere_gpu, \
-    random_point_sphere_cpu
 
 if cuda_installed:
     import cupy
@@ -93,11 +92,12 @@ class SpinTracker(object):
 
             If 'rand', the spin vectors will be random, but with an
             ensemble average defined by one of the values of
-            s{x,y,z}_m. The first non-zero mean component will be
-            used, with order of preference being x,y,z, ie if sx_m!=0,
-            the generated spins will have an ensemble averages of
-            <sx>=sx_m, <sy>=0, <sz>=0, or if sz_m!=0, <sx>=0, <sy>=0
-            and <sz>=sz_m.
+            s{x,y,z}_m. Only one of s{x,y,z}_m may be given and an
+            error will be raised if two or more components are specified.
+            The generated spins will have an ensemble averages of
+            <sx>=sx_m, <sy>=0, <sz>=0 if sx_m was specified. Note, if
+            none of s{x,y,z}_m are passed, the spins will be randomly
+            generated (by picking points on sphere of radius 1).
 
         """
         self.sx_m = sx_m
@@ -107,14 +107,23 @@ class SpinTracker(object):
         self.anom = anom
         self.dt = dt
         self.spin_distr = spin_distr
+        self.alpha = None
 
         # Check the spin vector length is correct for the 'fixed' distribution
         if spin_distr == 'fixed' and self.sm != 1.:
-            raise ValueError("When using 'fixed' spin distribution, "
-                             "the squared sum must be equal to 1!")
+            raise ValueError("When using 'fixed' spin distribution, the "
+                             "squared sum of mean values must be equal to 1!")
 
-        # Store the species we perform spin tracking for
-        self.ptcl = species
+        if abs(sx_m) > 1 or abs(sy_m) > 1 or abs(sz_m) > 1:
+            raise ValueError("Mean spin projection onto axes must not "
+                             "be greater than 1!")
+
+        # Check that only one spin component is given for rand distribution
+        if spin_distr == 'rand':
+            assert len(np.nonzero((sx_m, sy_m, sz_m))[0]) == 1, \
+                ('Only one non-zero spin-component may be '
+                 'passed if spin_distr is "rand"')
+
         self.use_cuda = species.use_cuda
 
         # Register arrays for previous timestep spins
@@ -123,23 +132,28 @@ class SpinTracker(object):
         self.uz_prev = None
 
         # Create the initial spin array
-        self.sx, self.sy, self.sz = self.generate_new_spins(self.ptcl.Ntot)
+        self.sx, self.sy, self.sz = self.generate_new_spins(species.Ntot)
 
-    def store_previous_momenta(self):
+    def store_previous_momenta(self, species):
         """
         Store the momenta at the previous half timestep, ie at
         t = (n-1/2) dt
+        
+        Parameters
+        ----------
+        species: an fbpic.Species object
+            The particle species whos spin is being tracked
         """
         if self.use_cuda:
-            self.ux_prev = cupy.array(self.ptcl.ux, order='C')
-            self.uy_prev = cupy.array(self.ptcl.uy, order='C')
-            self.uz_prev = cupy.array(self.ptcl.uz, order='C')
+            self.ux_prev = cupy.array(species.ux, order='C')
+            self.uy_prev = cupy.array(species.uy, order='C')
+            self.uz_prev = cupy.array(species.uz, order='C')
         else:
-            self.ux_prev = np.array(self.ptcl.ux, order='C')
-            self.uy_prev = np.array(self.ptcl.uy, order='C')
-            self.uz_prev = np.array(self.ptcl.uz, order='C')
+            self.ux_prev = np.array(species.ux, order='C')
+            self.uy_prev = np.array(species.uy, order='C')
+            self.uz_prev = np.array(species.uz, order='C')
 
-    def push_s(self):
+    def push_s(self, species):
         """
         Advance particles' spin vector over one timestep according to the
         Bargmann-Michel-Telegdi equation, using a Boris-pusher like method.
@@ -153,87 +167,95 @@ class SpinTracker(object):
         self.Bx, self.By, self.Bz,                          n
         self.x, self.y, self.z                              n
         self.ux, self.uy, self.uz                           n+1/2
+        
+        Parameters
+        ----------
+        species: an fbpic.Species object
+            The particle species whose spin is being tracked
         """
         # No precession for neutral particle
-        if self.ptcl.q == 0:
+        if species.q == 0:
             return
 
         # GPU (CUDA) version
         if self.use_cuda:
             # Get the threads per block and the blocks per grid
-            dim_grid_1d, dim_block_1d = cuda_tpb_bpg_1d( self.ptcl.Ntot )
+            dim_grid_1d, dim_block_1d = cuda_tpb_bpg_1d( species.Ntot )
             # Call the CUDA Kernel for the spin push
-            if self.ptcl.ionizer is not None:
+            if species.ionizer is not None:
                 # Ionizable species can have a charge that depends on the
                 # macroparticle, and hence require a different function
                 push_s_ioniz_gpu[dim_grid_1d, dim_block_1d](
                     self.sx, self.sy, self.sz,
                     self.ux_prev, self.uy_prev, self.uz_prev,
-                    self.ptcl.ux, self.ptcl.uy, self.ptcl.uz,
-                    self.ptcl.Ex, self.ptcl.Ey, self.ptcl.Ez,
-                    self.ptcl.Bx, self.ptcl.By, self.ptcl.Bz,
-                    self.ptcl.m, self.ptcl.Ntot, self.dt, self.anom,
-                    self.ptcl.ionizer.ionization_level)
+                    species.ux, species.uy, species.uz,
+                    species.Ex, species.Ey, species.Ez,
+                    species.Bx, species.By, species.Bz,
+                    species.m, species.Ntot, self.dt, self.anom,
+                    species.ionizer.ionization_level)
             else:
                 # Standard pusher
                 push_s_gpu[dim_grid_1d, dim_block_1d](
                     self.sx, self.sy, self.sz,
                     self.ux_prev, self.uy_prev, self.uz_prev,
-                    self.ptcl.ux, self.ptcl.uy, self.ptcl.uz,
-                    self.ptcl.Ex, self.ptcl.Ey, self.ptcl.Ez,
-                    self.ptcl.Bx, self.ptcl.By, self.ptcl.Bz,
-                    self.ptcl.q, self.ptcl.m, self.ptcl.Ntot,
+                    species.ux, species.uy, species.uz,
+                    species.Ex, species.Ey, species.Ez,
+                    species.Bx, species.By, species.Bz,
+                    species.q, species.m, species.Ntot,
                     self.dt, self.anom)
         # CPU version
         else:
-            if self.ptcl.ionizer is not None:
+            if species.ionizer is not None:
                 # Ionizable species can have a charge that depends on the
                 # macroparticle, and hence require a different function
                 push_s_ioniz_numba(self.sx, self.sy, self.sz,
                                    self.ux_prev, self.uy_prev, self.uz_prev,
-                                   self.ptcl.ux, self.ptcl.uy, self.ptcl.uz,
-                                   self.ptcl.Ex, self.ptcl.Ey, self.ptcl.Ez,
-                                   self.ptcl.Bx, self.ptcl.By, self.ptcl.Bz,
-                                   self.ptcl.m, self.ptcl.Ntot,
+                                   species.ux, species.uy, species.uz,
+                                   species.Ex, species.Ey, species.Ez,
+                                   species.Bx, species.By, species.Bz,
+                                   species.m, species.Ntot,
                                    self.dt, self.anom,
-                                   self.ptcl.ionizer.ionization_level)
+                                   species.ionizer.ionization_level)
             else:
                 # Standard spin pusher
                 push_s_numba(self.sx, self.sy, self.sz,
                              self.ux_prev, self.uy_prev, self.uz_prev,
-                             self.ptcl.ux, self.ptcl.uy, self.ptcl.uz,
-                             self.ptcl.Ex, self.ptcl.Ey, self.ptcl.Ez,
-                             self.ptcl.Bx, self.ptcl.By, self.ptcl.Bz,
-                             self.ptcl.q, self.ptcl.m, self.ptcl.Ntot,
+                             species.ux, species.uy, species.uz,
+                             species.Ex, species.Ey, species.Ez,
+                             species.Bx, species.By, species.Bz,
+                             species.q, species.m, species.Ntot,
                              self.dt, self.anom)
 
     def generate_new_spins(self, Ntot):
         """
         Create new spin vectors for particles. This method
-        generates a set of spin components, where the ensemble
-        averages satisfy the user's requirement in terms of averages.
+        generates spin components, where the ensemble
+        averages satisfy the distribution (spin_distr) and
+        averages (sx_m, sy_m, sz_m) requested by the user.
+
+        Parameters
+        ----------
+        Ntot: int
+            Number of spin vectors to make
         """
         if self.spin_distr == 'fixed':
-            sx = np.ones(Ntot) * self.sx_m / self.sm
-            sy = np.ones(Ntot) * self.sy_m / self.sm
-            sz = np.ones(Ntot) * self.sz_m / self.sm
+            sx = np.ones(Ntot) * self.sx_m
+            sy = np.ones(Ntot) * self.sy_m
+            sz = np.ones(Ntot) * self.sz_m
         else:
             # If the user passes a preferred spin avergae
             if self.sx_m != 0.:
-                sx, sy, sz = make_random_spins(Ntot, self.sx_m)
+                sy, sz, sx = self.make_random_spins(Ntot, self.sx_m)
             elif self.sy_m != 0.:
-                sy, sx, sz = make_random_spins(Ntot, self.sy_m)
+                sz, sx, sy = self.make_random_spins(Ntot, self.sy_m)
             elif self.sz_m != 0.:
-                sz, sx, sy = make_random_spins(Ntot, self.sz_m)
+                sx, sy, sz = self.make_random_spins(Ntot, self.sz_m)
             else:
                 # If the user does not pass anything, all spins
                 # are randomly oriented
-                sx, sy, sz = random_point_sphere_cpu(Ntot)
+                sx, sy, sz = self.make_random_spins(Ntot, 0.)
 
         return sx, sy, sz
-
-    def generate_ionized_spins_gpu(self, Ntot):
-        return random_point_sphere_gpu(Ntot)
 
     def send_to_gpu(self):
         """
@@ -251,22 +273,60 @@ class SpinTracker(object):
         self.sy = self.sy.get()
         self.sz = self.sz.get()
 
+    def make_random_spins(self, Ntot, s_m):
+        """
+        Generates a random distribution of points on the surface
+        of a sphere of radius 1, such that the mean along z is `s_m`.
+        For s_m=0, points are uniformly distributed
+        on the surface of the sphere.
 
-def make_random_spins(Ntot, s1_m):
-    """
-    Make a set of random spins. The component s1 will
-    have an average value of s1_m, with its distribution
-    width being up to 0.3. All spin components will be
-    clipped to abs(1).
-    """
-    s1_th = min((0.3, 1 - abs(s1_m)))
-    s1 = s1_m * np.ones(Ntot) + s1_th * np.random.normal(size=Ntot)
-    s1[s1 > 1] = 1.  # keep within 1!
-    s1[s1 < -1] = -1.
-    s2 = 0.5 * np.random.normal(size=Ntot)
-    s3 = 0.5 * np.random.normal(size=Ntot)
+        Parameters
+        ----------
+        Ntot: int
+            Number of spin vectors to generate
 
-    ratio = np.sqrt((1 - s1 ** 2) / (s2 ** 2 + s3 ** 2))
-    s2 *= ratio
-    s3 *= ratio
-    return s1, s2, s3
+        s_m: float
+            Mean value of z-projection of the generated spins. Note,
+            if s_m = 0, the points will be randomly picked on the sphere.
+
+        Returns
+        -------
+        x: np.array of length Ntot
+            x-components of new particles.
+
+        y: np.array of length Ntot
+            y-components of new particles.
+
+        z: np.array of length Ntot
+            z-components of new particles.
+        """
+        if abs(s_m) == 1:
+            z = s_m * np.ones(Ntot)  # z has a fixed value in this case
+        elif s_m == 0:
+            z = np.random.uniform(-1, 1, Ntot)  # random uniform
+        else:
+            # Generate z coord with a probability distribution
+            # e^(-alpha z) between -1 and 1. First find the value of alpha
+            # that correspond to s1_m using the fact that the mean of
+            # the probability distribution e^(-alpha z)
+            # is <z> = (1/alpha - 1/tanh(alpha))
+
+            if self.alpha is None:
+                sol = fsolve(lambda alpha: 1. / alpha -
+                                           1. / np.tanh(alpha) - s_m, 0.5)
+                self.alpha = sol[0]
+
+            # Generate z with probability distribution e^(-alpha z)
+            # by using the inverse CDF method
+            u = np.random.uniform(0, 1, Ntot)
+            z = -1 / self.alpha * np.log( np.exp(self.alpha)*(1-u) +
+                                          np.exp(-self.alpha)*u )
+
+        # azimuthal angle
+        phi = np.random.uniform(0, 2 * np.pi, Ntot)
+        # polar angle
+        sin_theta = np.sin(np.arccos(z))
+        # cartesian coords x and y
+        x = sin_theta*np.cos(phi)
+        y = sin_theta*np.sin(phi)
+        return x, y, z
