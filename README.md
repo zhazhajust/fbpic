@@ -76,10 +76,9 @@ pip install fbpic
 interface, you can instead use `pip install fbpic[picmi]`.)
 
 - **Optional:** in order to run on GPU, install the additional package
-`cudatoolkit` and `cupy` -- e.g. using CUDA version 10.0.
+`cupy` -- e.g. using CUDA version 11.8. (The command below also automatically installs `cudatoolkit` which is also needed by FBPIC.)
 ```
-conda install cudatoolkit=10.0
-pip install cupy-cuda100
+conda install cupy cuda-version=11.8
 ```
 (In the above command, you should choose a CUDA version that is compatible with your GPU driver ; see [this table](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#major-components__table-cuda-toolkit-driver-versions) for more info.)
 
@@ -129,6 +128,7 @@ FBPIC's algorithms are documented in following scientific publications:
 * Boosted-frame technique with Galilean algorithm: [M. Kirchen et al., PoP, 2016](https://aip.scitation.org/doi/10.1063/1.4964770) ([arXiv](https://arxiv.org/abs/1608.00215)) and [Lehe et al., PRE, 2016](https://journals.aps.org/pre/abstract/10.1103/PhysRevE.94.053305) ([arXiv](https://arxiv.org/abs/1608.00227))
 * Parallel finite-order solver for multi-CPU/GPU simulations: [S. Jalas et al., PoP, 2017](https://aip.scitation.org/doi/abs/10.1063/1.4978569) ([arXiv](https://arxiv.org/abs/1611.05712))
 * Parallel finite-order boosted-frame simulations for multi-CPU/GPU simulations: [M. Kirchen et al., PRE, 2020](https://journals.aps.org/pre/abstract/10.1103/PhysRevE.102.013202)
+* Tracking of particle spin evolution: [M. J. Quin MSc thesis](https://doi.org/10.11588/heidok.00033704), [Z. Gong et al., MRE 2023](https://doi.org/10.1063/5.0152382)
 
 If you use FBPIC for your research project: that's great! We are
 very pleased that the code is useful to you!
