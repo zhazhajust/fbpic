@@ -3,6 +3,7 @@
 #################################
 #################################
 import os
+import h5py
 import numpy as np
 from .generic_diag import OpenPMDDiagnostic
 from fbpic.utils.cuda import cuda_installed
@@ -49,11 +50,13 @@ class DumpSlice(OpenPMDDiagnostic):
         return
     
     def write_hdf5(self, iteration):
-        zmin, zmax = self.comm.get_zmin_zmax(local=True, with_damp=False, with_guard=False, 
+        zmin, zmax = self.comm.get_zmin_zmax(local=True, with_damp=False, with_guard=False,
                                              rank=self.comm.rank)
         z0 = self.z0
         if z0 < zmin or z0 > zmax:
             return
+        zmin, zmax = self.comm.get_zmin_zmax(local=True, with_damp=True, with_guard=True,
+                                             rank=self.comm.rank)
         idx_l = int((z0 - zmin)/self.comm.dz)
         self.dump(idx_l)
         self.write_dataset(iteration)
@@ -81,23 +84,22 @@ class DumpSlice(OpenPMDDiagnostic):
             fullpath, iteration, time, self.comm._Nr, 1, self.z0, self.fld.interp[0].dz, self.fld.dt )
 
         # Open the file again, and get the field path
-        f = self.open_file( fullpath )
+        # f = self.open_file( fullpath )
+        f = h5py.File(fullpath, mode="a")
         # (f is None if this processor does not participate in writing data)
-        if f is not None:
-            field_path = "/data/%d/fields/" %iteration
-            field_grp = f[field_path]
-        else:
-            field_grp = None
+        field_path = "/data/%d/fields/" %iteration
+        field_grp = f[field_path]
+
         # Write the data
         fieldtype = "E"
         coords = ["r", "t", "z"]
         for coord in coords:
             # Extract the correct dataset
             path = "%s/%s" %(fieldtype, coord)    
-            if field_grp is not None:
-                dset = field_grp[path]
-            else:
-                dset = None
+            dset = field_grp[path]
+            # temp_field = (self.slice_field[..., coords.index(coord)].get() if cuda_installed 
+            #               else self.slice_field[..., coords.index(coord)])
+            # temp_field = None
             if cuda_installed:
                 temp_field = self.slice_field[..., coords.index(coord)].get()
             else:
@@ -148,7 +150,8 @@ class DumpSlice(OpenPMDDiagnostic):
         data_shape = ( 2*self.fld.Nm - 1, Nr, Nz )
 
         # Create the file
-        f = self.open_file( fullpath )
+        # f = self.open_file( fullpath )
+        f = h5py.File(fullpath, mode="a")
 
         # Setup the different layers of the openPMD file
         # (f is None if this processor does not participate is writing data)
